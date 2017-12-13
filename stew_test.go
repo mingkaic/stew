@@ -30,7 +30,7 @@ type dErr struct {
 
 type groupPair struct {
 	args []string
-	res  *set.Set
+	res  *set.SetNonTS
 }
 
 //// ====== Globals ======
@@ -146,11 +146,19 @@ func TestFind(t *testing.T) {
 	stewie := New(rc)
 
 	for _, gp := range expectedAttrGroup {
-		elem := stewie.Find(gp.args[0], gp.args[1])[0]
-		expect := gp.res.List()[0].(*Stew)
-		if expect.Pos != elem.Pos {
-			t.Errorf("given attribute pairs: <%s, %s> expect <%d, %s>, got <%d, %s>",
-				gp.args[0], gp.args[1], expect.Pos, expect.Tag, elem.Pos, elem.Tag)
+		elems := stewie.Find(gp.args[0], gp.args[1])
+		if gp.res.Size() == 0 {
+			if len(elems) > 0 {
+				t.Errorf("given attribute pairs: <%s, %s> expected empty results, got %s",
+					gp.args[0], gp.args[1], elems)
+			}
+		} else {
+			elem := elems[0]
+			expect := gp.res.List()[0].(*Stew)
+			if expect.Pos != elem.Pos {
+				t.Errorf("given attribute pairs: <%s, %s> expect <%d, %s>, got <%d, %s>",
+					gp.args[0], gp.args[1], expect.Pos, expect.Tag, elem.Pos, elem.Tag)
+			}
 		}
 	}
 }
@@ -164,10 +172,18 @@ func TestQuickFind(t *testing.T) {
 	}
 
 	for _, gp := range expectedAttrGroup {
-		elem := Find(gp.args[0], gp.args[1])(root)[0]
-		expect := gp.res.List()[0].(*Stew)
-		if expect.Tag != elem.Data {
-			t.Errorf("expecting tag %s, got %s", expect.Tag, elem.Data)
+		elems := Find(gp.args[0], gp.args[1])(root)
+		if gp.res.Size() == 0 {
+			if len(elems) > 0 {
+				t.Errorf("given attribute pairs: <%s, %s> expected empty results, got %s",
+					gp.args[0], gp.args[1], elems)
+			}
+		} else {
+			elem := elems[0]
+			expect := gp.res.List()[0].(*Stew)
+			if expect.Tag != elem.Data {
+				t.Errorf("expecting tag %s, got %s", expect.Tag, elem.Data)
+			}
 		}
 	}
 }
@@ -184,8 +200,7 @@ func (rc *mockRC) Close() (err error) {
 //// Stew Creation and Inspection
 
 // create a new stew from explicit parameters
-func utilStewNew(pos uint, tag string, attrs map[string][]string,
-	descs map[string]*set.Set, children ...*Stew) *Stew {
+func utilStewNew(pos uint, tag string, attrs map[string][]string, descs DescMap, children ...*Stew) *Stew {
 	stewie := &Stew{Pos: pos, Tag: tag, Attrs: attrs, Descs: descs, Children: children}
 	for _, child := range children {
 		child.Parent = stewie
@@ -194,10 +209,10 @@ func utilStewNew(pos uint, tag string, attrs map[string][]string,
 }
 
 // convert descendant map to string
-func utilDescString(desc map[string]*set.Set) string {
+func utilDescString(desc DescMap) string {
 	printable := make(map[string][]string)
 	for key, value := range desc {
-		vlist := value.List()
+		vlist := set.Interface(value).List()
 		printable[key] = make([]string, len(vlist))
 		for i, dStew := range vlist {
 			printable[key][i] = fmt.Sprint(dStew.(*Stew).Pos)
@@ -318,24 +333,24 @@ func utilStewFragDiff(stew1, stew2 *Stew) []dErr {
 }
 
 // evaluate the equality between descendant maps
-func utilDescEqual(desc1, desc2 map[string]*set.Set) bool {
+func utilDescEqual(desc1, desc2 DescMap) bool {
 	if len(desc1) != len(desc2) {
 		return false
 	}
 	for key, value := range desc1 {
 		v2 := desc2[key]
-		if v2 == nil || value.Size() != v2.Size() {
+		if v2 == nil || set.Interface(value).Size() != set.Interface(v2).Size() {
 			return false
 		}
-		origPSet := set.New()
-		value.Each(func(elem interface{}) bool {
-			origPSet.Add(elem.(*Stew).Pos)
+		origPSet := set.NewNonTS()
+		set.Interface(value).Each(func(elem interface{}) bool {
+			set.Interface(origPSet).Add(elem.(*Stew).Pos)
 			return true
 		})
 
 		equal := true
-		v2.Each(func(elem interface{}) bool {
-			equal = equal && origPSet.Has(elem.(*Stew).Pos)
+		set.Interface(v2).Each(func(elem interface{}) bool {
+			equal = equal && set.Interface(origPSet).Has(elem.(*Stew).Pos)
 			return equal
 		})
 		// equal by pigeon hole
@@ -353,111 +368,115 @@ func utilDescEqual(desc1, desc2 map[string]*set.Set) bool {
 func setupExpectation() {
 	// leaves
 	title := utilStewNew(4, "title", map[string][]string{"": {"your title here"}},
-		map[string]*set.Set{})
+		DescMap{})
 	img := utilStewNew(14, "img", map[string][]string{
 		"src":   {"clouds.jpg"},
 		"align": {"bottom"},
-	}, map[string]*set.Set{})
-	hr1 := utilStewNew(6, "hr", map[string][]string{}, map[string]*set.Set{})
+	}, DescMap{})
+	hr1 := utilStewNew(6, "hr", map[string][]string{}, DescMap{})
 	a1 := utilStewNew(7, "a", map[string][]string{
 		"":     {"link name"},
 		"href": {"http://somegreatsite.com"},
-	}, map[string]*set.Set{})
+	}, DescMap{})
 	h1 := utilStewNew(8, "h1", map[string][]string{"": {"this is a header"}},
-		map[string]*set.Set{})
+		DescMap{})
 	h2 := utilStewNew(9, "h2", map[string][]string{"": {"this is a medium header"}},
-		map[string]*set.Set{})
+		DescMap{})
 	a2 := utilStewNew(10, "a", map[string][]string{
 		"":     {"support@yourcompany.com"},
 		"href": {"mailto:support@yourcompany.com"},
-	}, map[string]*set.Set{})
+	}, DescMap{})
 	p1 := utilStewNew(11, "p", map[string][]string{"": {"this is a new paragraph!"}},
-		map[string]*set.Set{})
+		DescMap{})
 	b1 := utilStewNew(15, "b", map[string][]string{"": {"this is a new paragraph!"}},
-		map[string]*set.Set{})
-	br := utilStewNew(16, "br", map[string][]string{}, map[string]*set.Set{})
+		DescMap{})
+	br := utilStewNew(16, "br", map[string][]string{}, DescMap{})
 	i := utilStewNew(18, "i", map[string][]string{
 		"": {"this is a new sentence without a paragraph break, in bold italics."},
-	}, map[string]*set.Set{})
-	hr2 := utilStewNew(13, "hr", map[string][]string{}, map[string]*set.Set{})
+	}, DescMap{})
+	hr2 := utilStewNew(13, "hr", map[string][]string{}, DescMap{})
 
-	b2 := utilStewNew(17, "b", map[string][]string{}, map[string]*set.Set{"i": set.New(i)}, i)
+	b2 := utilStewNew(17, "b", map[string][]string{}, DescMap{"i": set.NewNonTS(i)}, i)
 
-	p2 := utilStewNew(12, "p", map[string][]string{}, map[string]*set.Set{
-		"b":  set.New(b1, b2),
-		"br": set.New(br),
-		"i":  set.New(i),
+	p2 := utilStewNew(12, "p", map[string][]string{}, DescMap{
+		"b":  set.NewNonTS(b1, b2),
+		"br": set.NewNonTS(br),
+		"i":  set.NewNonTS(i),
 	}, b1, br, b2)
 
 	center := utilStewNew(5, "center", map[string][]string{},
-		map[string]*set.Set{"img": set.New(img)}, img)
+		DescMap{"img": set.NewNonTS(img)}, img)
 
 	head := utilStewNew(2, "head", map[string][]string{},
-		map[string]*set.Set{"title": set.New(title)}, title)
+		DescMap{"title": set.NewNonTS(title)}, title)
 	body := utilStewNew(3, "body", map[string][]string{
 		"":        {"is a link to another nifty site", "send me mail at", "."},
 		"bgcolor": {"ffffff"},
-	}, map[string]*set.Set{
-		"a":      set.New(a1, a2),
-		"b":      set.New(b1, b2),
-		"br":     set.New(br),
-		"center": set.New(center),
-		"h1":     set.New(h1),
-		"h2":     set.New(h2),
-		"hr":     set.New(hr1, hr2),
-		"i":      set.New(i),
-		"img":    set.New(img),
-		"p":      set.New(p1, p2),
+	}, DescMap{
+		"a":      set.NewNonTS(a1, a2),
+		"b":      set.NewNonTS(b1, b2),
+		"br":     set.NewNonTS(br),
+		"center": set.NewNonTS(center),
+		"h1":     set.NewNonTS(h1),
+		"h2":     set.NewNonTS(h2),
+		"hr":     set.NewNonTS(hr1, hr2),
+		"i":      set.NewNonTS(i),
+		"img":    set.NewNonTS(img),
+		"p":      set.NewNonTS(p1, p2),
 	}, center, hr1, a1, h1, h2, a2, p1, p2, hr2)
 
-	html := utilStewNew(1, "html", map[string][]string{}, map[string]*set.Set{
-		"a":      set.New(a1, a2),
-		"b":      set.New(b1, b2),
-		"body":   set.New(body),
-		"br":     set.New(br),
-		"center": set.New(center),
-		"h1":     set.New(h1),
-		"h2":     set.New(h2),
-		"head":   set.New(head),
-		"hr":     set.New(hr1, hr2),
-		"i":      set.New(i),
-		"img":    set.New(img),
-		"p":      set.New(p1, p2),
-		"title":  set.New(title),
+	html := utilStewNew(1, "html", map[string][]string{}, DescMap{
+		"a":      set.NewNonTS(a1, a2),
+		"b":      set.NewNonTS(b1, b2),
+		"body":   set.NewNonTS(body),
+		"br":     set.NewNonTS(br),
+		"center": set.NewNonTS(center),
+		"h1":     set.NewNonTS(h1),
+		"h2":     set.NewNonTS(h2),
+		"head":   set.NewNonTS(head),
+		"hr":     set.NewNonTS(hr1, hr2),
+		"i":      set.NewNonTS(i),
+		"img":    set.NewNonTS(img),
+		"p":      set.NewNonTS(p1, p2),
+		"title":  set.NewNonTS(title),
 	}, head, body)
 
-	expectedStew = utilStewNew(0, "", map[string][]string{}, map[string]*set.Set{
-		"a":      set.New(a1, a2),
-		"b":      set.New(b1, b2),
-		"body":   set.New(body),
-		"br":     set.New(br),
-		"center": set.New(center),
-		"h1":     set.New(h1),
-		"h2":     set.New(h2),
-		"head":   set.New(head),
-		"hr":     set.New(hr1, hr2),
-		"html":   set.New(html),
-		"i":      set.New(i),
-		"img":    set.New(img),
-		"p":      set.New(p1, p2),
-		"title":  set.New(title),
+	expectedStew = utilStewNew(0, "", map[string][]string{}, DescMap{
+		"a":      set.NewNonTS(a1, a2),
+		"b":      set.NewNonTS(b1, b2),
+		"body":   set.NewNonTS(body),
+		"br":     set.NewNonTS(br),
+		"center": set.NewNonTS(center),
+		"h1":     set.NewNonTS(h1),
+		"h2":     set.NewNonTS(h2),
+		"head":   set.NewNonTS(head),
+		"hr":     set.NewNonTS(hr1, hr2),
+		"html":   set.NewNonTS(html),
+		"i":      set.NewNonTS(i),
+		"img":    set.NewNonTS(img),
+		"p":      set.NewNonTS(p1, p2),
+		"title":  set.NewNonTS(title),
 	}, html)
 
 	expectedTagGroup = []groupPair{
 		groupPair{[]string{"a", "b", "body", "br", "center"},
-			set.New(a1, a2, b1, b2, body, br, center)},
+			set.NewNonTS(a1, a2, b1, b2, body, br, center)},
 		groupPair{[]string{"h1", "h2", "head", "hr", "html"},
-			set.New(h1, h2, head, hr1, hr2, html)},
+			set.NewNonTS(h1, h2, head, hr1, hr2, html)},
 		groupPair{[]string{"i", "img", "p", "title"},
-			set.New(i, img, p1, p2, title)},
+			set.NewNonTS(i, img, p1, p2, title)},
+		// missing groups
+		groupPair{[]string{"xml", "meta", "col"}, set.NewNonTS()},
 	}
 
 	expectedAttrGroup = []groupPair{
-		groupPair{[]string{"bgcolor", "ffffff"}, set.New(body)},
-		groupPair{[]string{"src", "clouds.jpg"}, set.New(img)},
-		groupPair{[]string{"align", "bottom"}, set.New(img)},
-		groupPair{[]string{"align", "bottom"}, set.New(img)},
-		groupPair{[]string{"href", "http://somegreatsite.com"}, set.New(a1)},
-		groupPair{[]string{"href", "mailto:support@yourcompany.com"}, set.New(a2)},
+		groupPair{[]string{"bgcolor", "ffffff"}, set.NewNonTS(body)},
+		groupPair{[]string{"src", "clouds.jpg"}, set.NewNonTS(img)},
+		groupPair{[]string{"align", "bottom"}, set.NewNonTS(img)},
+		groupPair{[]string{"align", "bottom"}, set.NewNonTS(img)},
+		groupPair{[]string{"href", "http://somegreatsite.com"}, set.NewNonTS(a1)},
+		groupPair{[]string{"href", "mailto:support@yourcompany.com"}, set.NewNonTS(a2)},
+		// missing groups
+		groupPair{[]string{"class", "col-md-5"},set.NewNonTS()},
 	}
 }
