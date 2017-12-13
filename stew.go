@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-//// public:
+//// ====== Structures ======
 
 // Stew ...
 // Is a queryable alternative to html.Node
@@ -32,6 +32,18 @@ type Stew struct {
 	// empty string attrs key is the text content
 	Attrs map[string][]string
 }
+
+// ElemLookup ...
+// Is a functor type for DOM-tree BFS
+type ElemLookup func(*html.Node) []*html.Node
+
+// functor determines whether input node is a target
+// and whether it terminates the DOM search
+type queryOpt func(*html.Node) bool
+
+//// ====== Public ======
+
+//// Members for Stew Node
 
 // New ...
 // Parses input html source and returns the Stew tree root of the DOM
@@ -170,10 +182,6 @@ func (stew *Stew) Find(attrKey, attrVal string) []*Stew {
 
 //// Quick Lookups
 
-// ElemLookup ...
-// Is a functor type for DOM-tree BFS
-type ElemLookup func(*html.Node) []*html.Node
-
 // FindAll ...
 // Returns functor looking for elements with input tags
 func FindAll(tags ...string) ElemLookup {
@@ -201,11 +209,7 @@ func Find(attrKey, attrVal string) ElemLookup {
 		})
 }
 
-//// private:
-
-// functor determines whether input node is a target
-// and whether it terminates the DOM search
-type queryOpt func(*html.Node) bool
+//// ====== Private ======
 
 // generates a breadth first DOM search given a query functor
 func generateLookup(query queryOpt) ElemLookup {

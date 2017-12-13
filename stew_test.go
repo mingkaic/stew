@@ -17,14 +17,10 @@ import (
 	"gopkg.in/fatih/set.v0"
 )
 
-//// Utility structures
+//// ====== Utility Structures ======
 
 type mockRC struct {
 	*bytes.Buffer
-}
-
-func (rc *mockRC) Close() (err error) {
-	return
 }
 
 type dErr struct {
@@ -37,7 +33,7 @@ type groupPair struct {
 	res  *set.Set
 }
 
-//// Globals
+//// ====== Globals ======
 
 const sampleHtml = `
 <html>
@@ -69,7 +65,7 @@ var expectedTagGroup []groupPair
 
 var expectedAttrGroup []groupPair
 
-//// Tests
+//// ====== Tests ======
 
 func TestMain(m *testing.M) {
 	setupExpectation()
@@ -176,8 +172,18 @@ func TestQuickFind(t *testing.T) {
 	}
 }
 
-//// Test utilities
+//// ====== Utilities ======
 
+//// Members for mockRC
+
+// close mock readcloser
+func (rc *mockRC) Close() (err error) {
+	return
+}
+
+//// Stew Creation and Inspection
+
+// create a new stew from explicit parameters
 func utilStewNew(pos uint, tag string, attrs map[string][]string,
 	descs map[string]*set.Set, children ...*Stew) *Stew {
 	stewie := &Stew{Pos: pos, Tag: tag, Attrs: attrs, Descs: descs, Children: children}
@@ -187,6 +193,26 @@ func utilStewNew(pos uint, tag string, attrs map[string][]string,
 	return stewie
 }
 
+// convert descendant map to string
+func utilDescString(desc map[string]*set.Set) string {
+	printable := make(map[string][]string)
+	for key, value := range desc {
+		vlist := value.List()
+		printable[key] = make([]string, len(vlist))
+		for i, dStew := range vlist {
+			printable[key][i] = fmt.Sprint(dStew.(*Stew).Pos)
+		}
+	}
+	result, err := json.Marshal(printable)
+	if err != nil {
+		panic(err)
+	}
+	return string(result)
+}
+
+//// Stew Component Comparison
+
+// evaluate the difference between stew trees
 func utilStewDiff(stew1, stew2 *Stew) []dErr {
 	type stewPairs struct {
 		s1, s2 *Stew
@@ -245,6 +271,7 @@ func utilStewDiff(stew1, stew2 *Stew) []dErr {
 	return result
 }
 
+// evaluate the difference between individual stew nodes
 func utilStewFragDiff(stew1, stew2 *Stew) []dErr {
 	result := []dErr{}
 	if stew1.Pos != stew2.Pos {
@@ -290,6 +317,7 @@ func utilStewFragDiff(stew1, stew2 *Stew) []dErr {
 	return result
 }
 
+// evaluate the equality between descendant maps
 func utilDescEqual(desc1, desc2 map[string]*set.Set) bool {
 	if len(desc1) != len(desc2) {
 		return false
@@ -318,26 +346,10 @@ func utilDescEqual(desc1, desc2 map[string]*set.Set) bool {
 	return true
 }
 
-func utilDescString(desc map[string]*set.Set) string {
-	printable := make(map[string][]string)
-	for key, value := range desc {
-		vlist := value.List()
-		printable[key] = make([]string, len(vlist))
-		for i, dStew := range vlist {
-			printable[key][i] = fmt.Sprint(dStew.(*Stew).Pos)
-		}
-	}
-	result, err := json.Marshal(printable)
-	if err != nil {
-		panic(err)
-	}
-	return string(result)
-}
-
 //// Setup
 
 // todo: serialize this for regression testing (AFTER this test and serialization test)
-// hard code DOM
+// hard code DOM and initialize expectation globals
 func setupExpectation() {
 	// leaves
 	title := utilStewNew(4, "title", map[string][]string{"": {"your title here"}},
