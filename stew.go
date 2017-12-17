@@ -45,7 +45,7 @@ type queryOpt func(*html.Node) bool
 
 //// ====== Public ======
 
-//// Members for Stew Node
+//// Creator & Members for Stew Node
 
 // New ...
 // Parses input html source and returns the Stew tree root of the DOM
@@ -137,17 +137,17 @@ func New(body io.ReadCloser) *Stew {
 
 // FindAll ...
 // Returns all Stew nodes matching input tags
-func (stew *Stew) FindAll(tags ...string) []*Stew {
+func (this *Stew) FindAll(tags ...string) []*Stew {
 	stews := set.NewNonTS() // doesn't need to be thread safe
 	for _, tag := range tags {
-		if stew.Tag == tag {
-			stews.Add(stew)
+		if this.Tag == tag {
+			stews.Add(this)
 			break
 		}
 	}
 
 	for _, tag := range tags {
-		if desc, ok := stew.Descs[tag]; ok {
+		if desc, ok := this.Descs[tag]; ok {
 			stews.Merge(desc)
 		}
 	}
@@ -160,16 +160,16 @@ func (stew *Stew) FindAll(tags ...string) []*Stew {
 
 // Find ...
 // Returns all Stew nodes with matching input attr key-val pair
-func (stew *Stew) Find(attrKey, attrVal string) []*Stew {
+func (this *Stew) Find(attrKey, attrVal string) []*Stew {
 	results := []*Stew{}
-	for _, attrVal := range stew.Attrs[attrKey] {
+	for _, attrVal := range this.Attrs[attrKey] {
 		if attrVal == attrVal {
-			results = append(results, stew)
+			results = append(results, this)
 			break
 		}
 	}
 
-	for _, stews := range stew.Descs {
+	for _, stews := range this.Descs {
 		set.Interface(stews).Each(func(elem interface{}) bool {
 			s := elem.(*Stew)
 			for _, val := range s.Attrs[attrKey] {
