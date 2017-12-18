@@ -14,17 +14,11 @@ import (
 	"golang.org/x/net/html"
 )
 
-//// ====== Utility Structures ======
-
-type mockRC struct {
-	*bytes.Buffer
-}
-
 //// ====== Globals ======
 
 const nTagGroup = 4
 
-var expectedSite *gardener.HTMLNode
+var expectedPage *gardener.HTMLNode
 
 var sampleHTML string
 
@@ -46,18 +40,22 @@ func TestMain(m *testing.M) {
 	os.Exit(retCode)
 }
 
+// TestNew ...
+// Ensures scraper tree is equal to expected tree
 func TestNew(t *testing.T) {
-	var rc io.ReadCloser = &mockRC{bytes.NewBufferString(sampleHTML)}
+	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
 	stewie := New(rc)
 
-	treeCheck(expectedSite, stewie,
+	treeCheck(expectedPage, stewie,
 		func(msg string, args ...interface{}) {
 			t.Errorf(msg, args...)
 		})
 }
 
+// TestFindAll ...
+// Validates Stew.FindAll function
 func TestFindAll(t *testing.T) {
-	var rc io.ReadCloser = &mockRC{bytes.NewBufferString(sampleHTML)}
+	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
 	stewie := New(rc)
 
 	for _, gp := range expectedTags {
@@ -82,8 +80,10 @@ func TestFindAll(t *testing.T) {
 	}
 }
 
+// TestFind ...
+// Validates Stew.Find function
 func TestFind(t *testing.T) {
-	var rc io.ReadCloser = &mockRC{bytes.NewBufferString(sampleHTML)}
+	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
 	stewie := New(rc)
 
 	for _, gp := range expectedAttrs {
@@ -110,8 +110,10 @@ func TestFind(t *testing.T) {
 	}
 }
 
+// TestQuickFindAll ...
+// Validates FindAll closure
 func TestQuickFindAll(t *testing.T) {
-	var rc io.ReadCloser = &mockRC{bytes.NewBufferString(sampleHTML)}
+	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
 	defer rc.Close()
 	root, err := html.Parse(rc)
 	check(err)
@@ -138,8 +140,10 @@ func TestQuickFindAll(t *testing.T) {
 	}
 }
 
+// TestQuickFind ...
+// Validates Find closure
 func TestQuickFind(t *testing.T) {
-	var rc io.ReadCloser = &mockRC{bytes.NewBufferString(sampleHTML)}
+	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
 	defer rc.Close()
 	root, err := html.Parse(rc)
 	check(err)
@@ -165,13 +169,6 @@ func TestQuickFind(t *testing.T) {
 }
 
 //// ====== Utilities ======
-
-//// Members for mockRC
-
-// close mock readcloser
-func (rc *mockRC) Close() (err error) {
-	return
-}
 
 //// Core Utilities
 
@@ -214,15 +211,15 @@ func check(e error) {
 
 // randomly generate a stew and convert it to dom
 func setupExpectation() {
-	// setup site node
-	expectedSite = gardener.GenerateSite(nil)
-	hChild := (*expectedSite.Children[0]).(gardener.HTMLNode)
-	headChild := (*hChild.Children[0]).(gardener.HTMLNode)
+	// setup page node
+	expectedPage = gardener.GeneratePage(100, nil)
+	htmlChild := (*expectedPage.Children[0]).(gardener.HTMLNode)
+	headChild := (*htmlChild.Children[0]).(gardener.HTMLNode)
 	titleChild := (*headChild.Children[0]).(gardener.HTMLNode)
 	titleChild.Attrs[""] = []string{"sample title"}
 
-	// setup site text
-	sampleHTML = gardener.ToHTML(&hChild)
+	// setup page text
+	sampleHTML = gardener.ToHTML(expectedPage)
 
 	// setup expectation maps
 	expectedTags = make([]struct {
@@ -230,14 +227,14 @@ func setupExpectation() {
 		out  []*gardener.HTMLNode
 	}, nTagGroup)
 	i := 0
-	for tag, nodes := range expectedSite.TreeInfo.Tags {
+	for tag, nodes := range expectedPage.Info.Tags {
 		expectedTags[i].args = append(expectedTags[i].args, tag)
 		expectedTags[i].out = append(expectedTags[i].out, nodes...)
 
 		i = (i + 1) % nTagGroup
 	}
 
-	for attr, nodes := range expectedSite.TreeInfo.Attrs {
+	for attr, nodes := range expectedPage.Info.Attrs {
 		for _, node := range nodes {
 			if attr == "href" && node.Attrs[attr][0] == "#" {
 				continue
