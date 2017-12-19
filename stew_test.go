@@ -74,7 +74,7 @@ func TestFindAll(t *testing.T) {
 			sort.Ints(expArr)
 			sort.Ints(gotArr)
 			if !reflect.DeepEqual(expArr, gotArr) {
-				t.Errorf("expecting tag group %s, got %s", expArr, gotArr)
+				t.Errorf("expecting tag group %v, got %v", expArr, gotArr)
 			}
 		}
 	}
@@ -134,7 +134,7 @@ func TestQuickFindAll(t *testing.T) {
 			sort.Strings(expArr)
 			sort.Strings(gotArr)
 			if !reflect.DeepEqual(expArr, gotArr) {
-				t.Errorf("expecting tag group %s, got %s", expArr, gotArr)
+				t.Errorf("expecting tag group %v, got %v", expArr, gotArr)
 			}
 		}
 	}

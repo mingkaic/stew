@@ -1,9 +1,18 @@
 language: go
 
 go:
-  - 1.x
-  - 1.8.x
   - 1.9.x
   - master
 
-script: go test -v ./...
+script: go test -v -count 100 ./...
+
+# safelist
+branches:
+  only:
+  - master
+  - stable
+  - experimental
+
+# no need to pollute inboxes
+notifications:
+  email: false
