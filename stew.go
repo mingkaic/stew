@@ -151,8 +151,9 @@ func (this *Stew) FindAll(tags ...string) []*Stew {
 			stews.Merge(desc)
 		}
 	}
-	results := make([]*Stew, len(stews.List()))
-	for i, tag := range stews.List() {
+	slist := stews.List()
+	results := make([]*Stew, len(slist))
+	for i, tag := range slist {
 		results[i] = tag.(*Stew)
 	}
 	return results
