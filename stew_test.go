@@ -16,7 +16,11 @@ import (
 
 //// ====== Globals ======
 
-const nTagGroup = 4
+const (
+	nTagGroup = 4
+
+	N_TESTS = 100
+)
 
 var expectedPage *gardener.HTMLNode
 
@@ -35,8 +39,11 @@ var expectedAttrs []struct {
 //// ====== Tests ======
 
 func TestMain(m *testing.M) {
-	setupExpectation()
-	retCode := m.Run()
+	retCode := 0
+	for i := 0; i < N_TESTS && retCode == 0; i++ { // repeat all tests because of randomness
+		setupExpectation()
+		retCode = m.Run()
+	}
 	os.Exit(retCode)
 }
 
@@ -234,6 +241,10 @@ func setupExpectation() {
 		i = (i + 1) % nTagGroup
 	}
 
+	expectedAttrs = []struct {
+		attr, val string
+		out       *gardener.HTMLNode
+	}{}
 	for attr, nodes := range expectedPage.Info.Attrs {
 		for _, node := range nodes {
 			if attr == "href" && node.Attrs[attr][0] == "#" {
