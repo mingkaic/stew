@@ -13,7 +13,9 @@ import (
 	"strings"
 )
 
-//// ====== Structures ======
+// =============================================
+//                    Declarations
+// =============================================
 
 type DescMap map[string]set.Interface
 
@@ -43,7 +45,9 @@ type ElemLookup func(*html.Node) []*html.Node
 // and whether it terminates the DOM search
 type queryOpt func(*html.Node) bool
 
-//// ====== Public ======
+// =============================================
+//                    Public
+// =============================================
 
 //// Creator & Members for Stew Node
 
@@ -214,7 +218,9 @@ func Find(attrKey, attrVal string) ElemLookup {
 		})
 }
 
-//// ====== Private ======
+// =============================================
+//                    Private
+// =============================================
 
 // generates a breadth first DOM search given a query functor
 func generateLookup(query queryOpt) ElemLookup {

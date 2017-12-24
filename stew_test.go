@@ -14,7 +14,9 @@ import (
 	"golang.org/x/net/html"
 )
 
-//// ====== Globals ======
+// =============================================
+//                    Globals
+// =============================================
 
 const (
 	nTagGroup = 4
@@ -36,7 +38,9 @@ var expectedAttrs []struct {
 	out       *gardener.HTMLNode
 }
 
-//// ====== Tests ======
+// =============================================
+//                    Tests
+// =============================================
 
 func TestMain(m *testing.M) {
 	retCode := 0
@@ -175,46 +179,9 @@ func TestQuickFind(t *testing.T) {
 	}
 }
 
-//// ====== Utilities ======
-
-//// Core Utilities
-
-func treeCheck(expect *gardener.HTMLNode, got *Stew, errCheck func(msg string, args ...interface{})) {
-	if expect.Tag != got.Tag {
-		errCheck("@<%d> expected %s, got %s", expect.Pos, expect.Tag, got.Tag)
-	}
-	if expect.Pos != got.Pos {
-		errCheck("@<%s> expected %d, got %d", expect.Tag, expect.Pos, got.Pos)
-	}
-	if !reflect.DeepEqual(expect.Attrs, got.Attrs) {
-		errCheck("@<%d %s> expected %s, got %s", expect.Pos, expect.Tag, expect.Attrs, got.Attrs)
-	}
-	expectN := len(expect.Children)
-	gotN := len(got.Children)
-	if expectN != gotN {
-		errCheck("@<%d %s> expected %d children, got %d children",
-			expect.Pos, expect.Tag, expectN, gotN)
-	} else {
-		for i, ex := range expect.Children {
-			eChild := (*ex).(gardener.HTMLNode)
-			gChild := got.Children[i]
-			if gChild.Parent != got {
-				errCheck("@<%d %s> expected parent to be <%d %s>",
-					got.Pos, got.Tag, expect.Pos, expect.Tag)
-			} else {
-				treeCheck(&eChild, gChild, errCheck)
-			}
-		}
-	}
-}
-
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-//// ====== Setup ======
+// =============================================
+//                    Private
+// =============================================
 
 // randomly generate a stew and convert it to dom
 func setupExpectation() {
@@ -256,5 +223,42 @@ func setupExpectation() {
 				out       *gardener.HTMLNode
 			}{attr: attr, val: node.Attrs[attr][0], out: node})
 		}
+	}
+}
+
+//// Core Utilities
+
+func treeCheck(expect *gardener.HTMLNode, got *Stew, errCheck func(msg string, args ...interface{})) {
+	if expect.Tag != got.Tag {
+		errCheck("@<%d> expected %s, got %s", expect.Pos, expect.Tag, got.Tag)
+	}
+	if expect.Pos != got.Pos {
+		errCheck("@<%s> expected %d, got %d", expect.Tag, expect.Pos, got.Pos)
+	}
+	if !reflect.DeepEqual(expect.Attrs, got.Attrs) {
+		errCheck("@<%d %s> expected %s, got %s", expect.Pos, expect.Tag, expect.Attrs, got.Attrs)
+	}
+	expectN := len(expect.Children)
+	gotN := len(got.Children)
+	if expectN != gotN {
+		errCheck("@<%d %s> expected %d children, got %d children",
+			expect.Pos, expect.Tag, expectN, gotN)
+	} else {
+		for i, ex := range expect.Children {
+			eChild := (*ex).(gardener.HTMLNode)
+			gChild := got.Children[i]
+			if gChild.Parent != got {
+				errCheck("@<%d %s> expected parent to be <%d %s>",
+					got.Pos, got.Tag, expect.Pos, expect.Tag)
+			} else {
+				treeCheck(&eChild, gChild, errCheck)
+			}
+		}
+	}
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
 	}
 }
