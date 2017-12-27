@@ -51,11 +51,11 @@ func TestMain(m *testing.M) {
 	os.Exit(retCode)
 }
 
-// TestNew ...
+// TestNewFromReader ...
 // Ensures scraper tree is equal to expected tree
-func TestNew(t *testing.T) {
+func TestNewFromReader(t *testing.T) {
 	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
-	stewie := New(rc)
+	stewie := NewFromReader(rc)
 
 	treeCheck(expectedPage, stewie,
 		func(msg string, args ...interface{}) {
@@ -67,7 +67,7 @@ func TestNew(t *testing.T) {
 // Validates Stew.FindAll function
 func TestFindAll(t *testing.T) {
 	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
-	stewie := New(rc)
+	stewie := NewFromReader(rc)
 
 	for _, gp := range expectedTags {
 		group := stewie.FindAll(gp.args...)
@@ -95,7 +95,7 @@ func TestFindAll(t *testing.T) {
 // Validates Stew.Find function
 func TestFind(t *testing.T) {
 	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
-	stewie := New(rc)
+	stewie := NewFromReader(rc)
 
 	for _, gp := range expectedAttrs {
 		elems := stewie.Find(gp.attr, gp.val)

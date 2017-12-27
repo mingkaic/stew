@@ -6,11 +6,12 @@ package stew
 
 import (
 	"io"
+	"net/http"
+	"strings"
 
 	"golang.org/x/net/html"
 	"gopkg.in/eapache/queue.v1"
 	"gopkg.in/fatih/set.v0"
-	"strings"
 )
 
 // =============================================
@@ -52,14 +53,35 @@ type queryOpt func(*html.Node) bool
 //// Creator & Members for Stew Node
 
 // New ...
-// Parses input html source and returns the Stew tree root of the DOM
-func New(body io.ReadCloser) *Stew {
+// Visits link and extracts the Stew tree representation of the static DOM
+func New(link string) *Stew {
+	resp, err := http.Get(link)
+	if err != nil {
+		panic(err)
+	}
+	return NewFromRes(resp)
+}
+
+// NewFromRes ...
+// Parses input response and returns the Stew tree root
+func NewFromRes(res *http.Response) *Stew {
+	return NewFromReader(res.Body)
+}
+
+// NewFromReader ...
+// Parses input html reader source and returns the Stew tree root
+func NewFromReader(body io.ReadCloser) *Stew {
 	defer body.Close()
 	root, err := html.Parse(body)
 	if err != nil {
 		panic(err)
 	}
+	return NewFromNode(root)
+}
 
+// NewFromNode ...
+// Traverses through input root node and returns the Stew tree root
+func NewFromNode(root *html.Node) *Stew {
 	// parse root
 	type nodePair struct {
 		h *html.Node
