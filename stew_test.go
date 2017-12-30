@@ -20,8 +20,7 @@ import (
 
 const (
 	nTagGroup = 4
-
-	N_TESTS = 100
+	N_TESTS   = 100
 )
 
 var expectedPage *gardener.HTMLNode
@@ -44,8 +43,9 @@ var expectedAttrs []struct {
 
 func TestMain(m *testing.M) {
 	retCode := 0
+	gard := gardener.New()
 	for i := 0; i < N_TESTS && retCode == 0; i++ { // repeat all tests because of randomness
-		setupExpectation()
+		setupExpectation(gard)
 		retCode = m.Run()
 	}
 	os.Exit(retCode)
@@ -127,7 +127,7 @@ func TestQuickFindAll(t *testing.T) {
 	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
 	defer rc.Close()
 	root, err := html.Parse(rc)
-	check(err)
+	panicCheck(err)
 
 	for _, gp := range expectedTags {
 		group := FindAll(gp.args...)(root)
@@ -157,7 +157,7 @@ func TestQuickFind(t *testing.T) {
 	var rc io.ReadCloser = &gardener.MockRC{bytes.NewBufferString(sampleHTML)}
 	defer rc.Close()
 	root, err := html.Parse(rc)
-	check(err)
+	panicCheck(err)
 
 	for _, gp := range expectedAttrs {
 		elems := Find(gp.attr, gp.val)(root)
@@ -184,9 +184,9 @@ func TestQuickFind(t *testing.T) {
 // =============================================
 
 // randomly generate a stew and convert it to dom
-func setupExpectation() {
+func setupExpectation(gard *gardener.Gardener) {
 	// setup page node
-	expectedPage = gardener.GeneratePage(100, nil)
+	expectedPage = gard.GeneratePage(100, nil)
 	htmlChild := (*expectedPage.Children[0]).(gardener.HTMLNode)
 	headChild := (*htmlChild.Children[0]).(gardener.HTMLNode)
 	titleChild := (*headChild.Children[0]).(gardener.HTMLNode)
@@ -257,7 +257,7 @@ func treeCheck(expect *gardener.HTMLNode, got *Stew, errCheck func(msg string, a
 	}
 }
 
-func check(e error) {
+func panicCheck(e error) {
 	if e != nil {
 		panic(e)
 	}
