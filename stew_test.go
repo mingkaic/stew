@@ -20,7 +20,7 @@ import (
 
 const (
 	nTagGroup = 4
-	N_TESTS   = 100
+	NTESTS    = 100
 )
 
 var expectedPage *gardener.HTMLNode
@@ -44,7 +44,7 @@ var expectedAttrs []struct {
 func TestMain(m *testing.M) {
 	retCode := 0
 	gard := gardener.New()
-	for i := 0; i < N_TESTS && retCode == 0; i++ { // repeat all tests because of randomness
+	for i := 0; i < NTESTS && retCode == 0; i++ { // repeat all tests because of randomness
 		setupExpectation(gard)
 		retCode = m.Run()
 	}
@@ -187,9 +187,9 @@ func TestQuickFind(t *testing.T) {
 func setupExpectation(gard *gardener.Gardener) {
 	// setup page node
 	expectedPage = gard.GeneratePage(100, nil)
-	htmlChild := (*expectedPage.Children[0]).(gardener.HTMLNode)
-	headChild := (*htmlChild.Children[0]).(gardener.HTMLNode)
-	titleChild := (*headChild.Children[0]).(gardener.HTMLNode)
+	htmlChild := expectedPage.Children[0].(*gardener.HTMLNode)
+	headChild := htmlChild.Children[0].(*gardener.HTMLNode)
+	titleChild := headChild.Children[0].(*gardener.HTMLNode)
 	titleChild.Attrs[""] = []string{"sample title"}
 
 	// setup page text
@@ -245,13 +245,13 @@ func treeCheck(expect *gardener.HTMLNode, got *Stew, errCheck func(msg string, a
 			expect.Pos, expect.Tag, expectN, gotN)
 	} else {
 		for i, ex := range expect.Children {
-			eChild := (*ex).(gardener.HTMLNode)
+			eChild := ex.(*gardener.HTMLNode)
 			gChild := got.Children[i]
 			if gChild.Parent != got {
 				errCheck("@<%d %s> expected parent to be <%d %s>",
 					got.Pos, got.Tag, expect.Pos, expect.Tag)
 			} else {
-				treeCheck(&eChild, gChild, errCheck)
+				treeCheck(eChild, gChild, errCheck)
 			}
 		}
 	}

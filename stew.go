@@ -11,14 +11,13 @@ import (
 
 	"golang.org/x/net/html"
 	"gopkg.in/eapache/queue.v1"
-	"gopkg.in/fatih/set.v0"
 )
 
 // =============================================
 //                    Declarations
 // =============================================
 
-type DescMap map[string]set.Interface
+type DescMap map[string]map[*Stew]struct{}
 
 // Stew ...
 // Is a queryable alternative to html.Node
@@ -119,10 +118,10 @@ func NewFromNode(root *html.Node) *Stew {
 				sNode.Children = append(sNode.Children, sChild)
 				descs, ok := sNode.Descs[child.Data]
 				if !ok {
-					descs = set.New()
+					descs = make(map[*Stew]struct{})
 					sNode.Descs[child.Data] = descs
 				}
-				descs.Add(sChild)
+				descs[sChild] = struct{}{}
 				downQueue.Add(nodePair{child, sChild})
 			case html.TextNode:
 				content := strings.TrimSpace(child.Data)
@@ -143,12 +142,14 @@ func NewFromNode(root *html.Node) *Stew {
 		// push diff(curr.Desc, curr.Parent.Desc) to curr.Parent.Desc
 		for _, child := range curr.Children {
 			for key, value := range child.Descs {
-				descs := curr.Descs[key]
-				if descs == nil {
-					descs = set.New()
-					curr.Descs[key] = descs
+				if descs, ok := curr.Descs[key]; ok {
+					// merge value and descs
+					for v := range value {
+						descs[v] = struct{}{}
+					}
+				} else {
+					curr.Descs[key] = value
 				}
-				set.Interface(descs).Merge(value)
 			}
 		}
 
@@ -164,23 +165,28 @@ func NewFromNode(root *html.Node) *Stew {
 // FindAll ...
 // Returns all Stew nodes matching input tags
 func (this *Stew) FindAll(tags ...string) []*Stew {
-	stews := set.NewNonTS() // doesn't need to be thread safe
+	stews := make(map[*Stew]struct{})
 	for _, tag := range tags {
 		if this.Tag == tag {
-			stews.Add(this)
+			stews[this] = struct{}{}
 			break
 		}
 	}
 
 	for _, tag := range tags {
 		if desc, ok := this.Descs[tag]; ok {
-			stews.Merge(desc)
+			for v := range desc {
+				stews[v] = struct{}{}
+			}
 		}
 	}
-	slist := stews.List()
+	slist := make([]*Stew, 0, len(stews))
+	for s := range stews {
+		slist = append(slist, s)
+	}
 	results := make([]*Stew, len(slist))
 	for i, tag := range slist {
-		results[i] = tag.(*Stew)
+		results[i] = tag
 	}
 	return results
 }
@@ -197,16 +203,14 @@ func (this *Stew) Find(attrKey, attrVal string) []*Stew {
 	}
 
 	for _, stews := range this.Descs {
-		set.Interface(stews).Each(func(elem interface{}) bool {
-			s := elem.(*Stew)
+		for s := range stews {
 			for _, val := range s.Attrs[attrKey] {
 				if val == attrVal {
 					results = append(results, s)
 					break
 				}
 			}
-			return true
-		})
+		}
 	}
 	return results
 }
